@@ -25,13 +25,9 @@ jobs:
         run: |
           if [ -f "gradlew" ]; then
             chmod +x gradlew
-            ./gradlew :app:assembleDebug || ./gradlew assembleDebug
-          elif [ -f "android/gradlew" ]; then
-            cd android
-            chmod +x gradlew
-            ./gradlew :app:assembleDebug || ./gradlew assembleDebug
+            ./gradlew assembleDebug
           else
-            gradle :app:assembleDebug || gradle assembleDebug
+            gradle assembleDebug
           fi
 
       - name: Upload APK
