@@ -12,5 +12,8 @@ find_library(log-lib log)
 target_link_libraries(
     gbaemulator
     android
+    GLESv2
+    EGL
     ${log-lib}
 )
+ 
