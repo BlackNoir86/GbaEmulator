@@ -1,16 +1,8 @@
-cmake_minimum_required(VERSION 3.22.1)
-project("gbaemulator")
+#include <android/native_activity.h>
+#include <android/log.h>
 
-add_library(
-    gbaemulator
-    SHARED
-    src/main/cpp/main.cpp
-)
+#define LOGI(...) __android_log_print(ANDROID_LOG_INFO, "GbaEmulator", __VA_ARGS__)
 
-find_library(log-lib log)
-
-target_link_libraries(
-    gbaemulator
-    android
-    ${log-lib}
-)
+void ANativeActivity_onCreate(ANativeActivity* activity, void* savedState, size_t savedStateSize) {
+    LOGI("GBA Emulator Native Activity Started!");
+}
