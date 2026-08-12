@@ -4,6 +4,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.widget.Button
 import android.widget.FrameLayout
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 
@@ -20,6 +21,12 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        try {
+            System.loadLibrary("gba_core")
+        } catch (e: UnsatisfiedLinkError) {
+            e.printStackTrace()
+        }
+
         val layout = FrameLayout(this)
 
         val button = Button(this).apply {
@@ -34,15 +41,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun loadRomFromUri(uri: Uri) {
-        contentResolver.openInputStream(uri)?.use { inputStream ->
-            val bytes = inputStream.readBytes()
-            loadRomNative(bytes)
-        }
-    }
-
-    companion object {
-        init {
-            System.loadLibrary("gba_core")
+        try {
+            contentResolver.openInputStream(uri)?.use { inputStream ->
+                val bytes = inputStream.readBytes()
+                val success = loadRomNative(bytes)
+                if (success) {
+                    Toast.makeText(this, "ROM Caricata!", Toast.LENGTH_SHORT).show()
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 }
