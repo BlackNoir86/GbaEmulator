@@ -17,11 +17,6 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Setup Android NDK
-      uses: nbdmg/setup-ndk-action@v1
-      with:
-        ndk-version: r25c
-
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
 
