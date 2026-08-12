@@ -8,7 +8,8 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val tv = TextView(this)
-        tv.text = "Emulator Ready"
+        tv.text = "GBA Emulator OK - No Crash"
+        tv.textSize = 24f
         setContentView(tv)
     }
 }
