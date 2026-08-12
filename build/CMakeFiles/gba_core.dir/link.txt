@@ -1,0 +1,1 @@
+/data/data/com.termux/files/usr/bin/c++ -fPIC -O2 -g -DNDEBUG -shared -Xlinker --dependency-file=CMakeFiles/gba_core.dir/link.d -Wl,-soname,libgba_core.so -o libgba_core.so CMakeFiles/gba_core.dir/core/src/gba.cpp.o CMakeFiles/gba_core.dir/core/src/jni_bridge.cpp.o CMakeFiles/gba_core.dir/core/src/ppu.cpp.o
