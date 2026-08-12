@@ -1,21 +1,31 @@
 package com.example.gbaemulator
 
-import android.net.Uri
+import android.app.Activity
 import android.os.Bundle
 import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.Toast
+import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AppCompatActivity
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : ComponentActivity() {
 
     private external fun loadRomNative(romData: ByteArray): Boolean
 
     private val selectRomLauncher = registerForActivityResult(
         ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        uri?.let { loadRomFromUri(it) }
+    ) { uri ->
+        uri?.let {
+            try {
+                contentResolver.openInputStream(it)?.use { inputStream ->
+                    val bytes = inputStream.readBytes()
+                    val ok = loadRomNative(bytes)
+                    Toast.makeText(this, if (ok) "ROM Caricata!" else "Errore caricamento", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(this, "Errore lettore file", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -23,34 +33,16 @@ class MainActivity : AppCompatActivity() {
 
         try {
             System.loadLibrary("gba_core")
-        } catch (e: UnsatisfiedLinkError) {
+        } catch (e: Throwable) {
             e.printStackTrace()
         }
 
         val layout = FrameLayout(this)
-
         val button = Button(this).apply {
             text = "Carica ROM GBA"
-            setOnClickListener {
-                selectRomLauncher.launch("*/*")
-            }
+            setOnClickListener { selectRomLauncher.launch("*/*") }
         }
-
         layout.addView(button)
         setContentView(layout)
-    }
-
-    private fun loadRomFromUri(uri: Uri) {
-        try {
-            contentResolver.openInputStream(uri)?.use { inputStream ->
-                val bytes = inputStream.readBytes()
-                val success = loadRomNative(bytes)
-                if (success) {
-                    Toast.makeText(this, "ROM Caricata!", Toast.LENGTH_SHORT).show()
-                }
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
     }
 }
