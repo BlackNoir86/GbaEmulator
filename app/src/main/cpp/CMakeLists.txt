@@ -14,5 +14,4 @@ target_link_libraries(
     gbaemulator
     ${log-lib}
     ${android-lib}
-    dl
 )
