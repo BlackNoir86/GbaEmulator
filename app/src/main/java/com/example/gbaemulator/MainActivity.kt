@@ -45,6 +45,7 @@ class MainActivity : AppCompatActivity(), SurfaceHolder.Callback {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        // Recupera i riferimenti espliciti al layout XML tramite R.id
         surfaceView = findViewById(R.id.surfaceView)
         surfaceView.holder.addCallback(this)
 
