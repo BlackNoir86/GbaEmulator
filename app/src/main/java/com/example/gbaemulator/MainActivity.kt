@@ -1,7 +1,9 @@
 package com.example.gbaemulator
 
+import android.annotation.SuppressLint
 import android.net.Uri
 import android.os.Bundle
+import android.view.MotionEvent
 import android.view.SurfaceHolder
 import android.view.SurfaceView
 import android.view.View
@@ -20,6 +22,9 @@ class MainActivity : AppCompatActivity(), SurfaceHolder.Callback {
     private var isRunning = false
     private var renderThread: Thread? = null
 
+    // Maschera dei tasti GBA (Active LOW)
+    private var keyState = 0x03FF
+
     companion object {
         init {
             System.loadLibrary("gbaemulator")
@@ -28,6 +33,7 @@ class MainActivity : AppCompatActivity(), SurfaceHolder.Callback {
 
     private external fun nativeLoadRom(romBytes: ByteArray)
     private external fun nativeRenderFrame(surface: Any)
+    private external fun nativeSetKeyState(keys: Int)
 
     private val openRomLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri?.let { loadRom(it) }
@@ -47,6 +53,43 @@ class MainActivity : AppCompatActivity(), SurfaceHolder.Callback {
         btnLoadRom.setOnClickListener {
             openRomLauncher.launch("*/*")
         }
+
+        setupControllerButtons()
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
+    private fun setupControllerButtons() {
+        // Mappatura tasti: Bit 0=A, 1=B, 2=Select, 3=Start, 4=Right, 5=Left, 6=Up, 7=Down, 8=R, 9=L
+        bindButton(R.id.btn_a, 0)
+        bindButton(R.id.btn_b, 1)
+        bindButton(R.id.btn_select, 2)
+        bindButton(R.id.btn_start, 3)
+        bindButton(R.id.btn_right, 4)
+        bindButton(R.id.btn_left, 5)
+        bindButton(R.id.btn_up, 6)
+        bindButton(R.id.btn_down, 7)
+        bindButton(R.id.btn_r, 8)
+        bindButton(R.id.btn_l, 9)
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
+    private fun bindButton(buttonId: Int, bitPosition: Int) {
+        val btn: Button = findViewById(buttonId) ?: return
+        btn.setOnTouchListener { _, event ->
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    keyState = keyState and (1 shl bitPosition).inv() // Tasto premuto (bit 0)
+                    nativeSetKeyState(keyState)
+                    true
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    keyState = keyState or (1 shl bitPosition) // Tasto rilasciato (bit 1)
+                    nativeSetKeyState(keyState)
+                    true
+                }
+                else -> false
+            }
+        }
     }
 
     private fun loadRom(uri: Uri) {
@@ -60,7 +103,7 @@ class MainActivity : AppCompatActivity(), SurfaceHolder.Callback {
 
                 loadRomLayout.visibility = View.GONE
                 surfaceView.visibility = View.VISIBLE
-                
+
                 startEmulatorLoop()
             }
         } catch (e: Exception) {
@@ -75,7 +118,7 @@ class MainActivity : AppCompatActivity(), SurfaceHolder.Callback {
                 if (surfaceView.holder.surface.isValid) {
                     nativeRenderFrame(surfaceView.holder.surface)
                 }
-                Thread.sleep(16) // ~60 FPS
+                Thread.sleep(16) // 60 FPS
             }
         }
         renderThread?.start()
