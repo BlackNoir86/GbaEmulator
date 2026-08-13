@@ -4,16 +4,21 @@
     android:layout_height="match_parent"
     android:background="#1E1E1E">
 
-    <!-- SCHERMO GBA (Cliccabile per caricare la ROM) -->
+    <!-- SCHERMO GBA -->
     <FrameLayout
         android:id="@+id/screen_container"
         android:layout_width="match_parent"
         android:layout_height="240dp"
         android:layout_alignParentTop="true"
         android:layout_margin="16dp"
-        android:background="#000000"
-        android:clickable="true"
-        android:focusable="true">
+        android:background="#000000">
+
+        <!-- Superficie di disegno per il video -->
+        <SurfaceView
+            android:id="@+id/emulator_surface"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone" />
 
         <LinearLayout
             android:id="@+id/load_rom_layout"
@@ -74,7 +79,7 @@
         android:layout_below="@id/shoulder_buttons"
         android:padding="16dp">
 
-        <!-- D-PAD (Freccette) -->
+        <!-- D-PAD -->
         <GridLayout
             android:id="@+id/dpad"
             android:layout_width="wrap_content"
