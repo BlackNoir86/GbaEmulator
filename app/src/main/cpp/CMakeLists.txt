@@ -5,7 +5,6 @@ add_library(
     gbaemulator
     SHARED
     gba_core.cpp
-    vram_decoder.cpp
 )
 
 find_library(log-lib log)
