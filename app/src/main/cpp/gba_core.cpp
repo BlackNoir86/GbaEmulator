@@ -5,49 +5,29 @@
 #include <vector>
 #include <cstring>
 #include <cstdint>
+#include "vram_decoder.h"
 
 #define LOG_TAG "GBA_CORE"
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
 
-// Strutture Hardware GBA
 static std::vector<uint8_t> rom_data;
 static uint32_t gba_framebuffer[240 * 160];
 static bool is_rom_loaded = false;
+static uint16_t key_state = 0x03FF;
 
-// Registro controlli GBA
-static uint16_t key_state = 0x03FF; 
-
-// Registri CPU ARM7TDMI e PPU (Picture Processing Unit)
-struct ARMCore {
-    uint32_t R[16]; // R0-R15
-    uint32_t CPSR;
-    bool is_thumb;
-} cpu;
-
-// Inizializzazione della CPU e decodifica dell'header ROM
-void reset_gba_cpu() {
-    memset(&cpu, 0, sizeof(cpu));
-    // Set Entry Point standard GBA
-    cpu.R[15] = 0x08000000; // ROM Entry Point
-    cpu.CPSR = 0x1F;        // System Mode
-    LOGI("CPU ARM7TDMI Inizializzata. PC: 0x%08X", cpu.R[15]);
-}
+// Palette di default per l'interfaccia GBA (16 Colori BGR555)
+static const uint16_t default_palette[16] = {
+    0x0000, 0x7FFF, 0x001F, 0x03E0, 0x7C00, 0x03FF, 0x7C1F, 0x7FE0,
+    0x3DEF, 0x18C6, 0x2104, 0x0010, 0x0200, 0x4000, 0x1C0E, 0x630C
+};
 
 extern "C" JNIEXPORT void JNICALL
 Java_com_example_gbaemulator_MainActivity_nativeLoadRom(JNIEnv* env, jobject thiz, jbyteArray rom_bytes) {
     jsize len = env->GetArrayLength(rom_bytes);
     rom_data.resize(len);
     env->GetByteArrayRegion(rom_bytes, 0, len, reinterpret_cast<jbyte*>(rom_data.data()));
-    
-    reset_gba_cpu();
     is_rom_loaded = true;
-
-    // Lettura Titolo del Gioco dall'Header (Offset 0xA0)
-    char title[13] = {0};
-    if (len >= 0xAC) {
-        memcpy(title, &rom_data[0xA0], 12);
-        LOGI("ROM Avviata: %s (%d bytes)", title, len);
-    }
+    LOGI("ROM caricata con successo: %d bytes", len);
 }
 
 extern "C" JNIEXPORT void JNICALL
@@ -55,10 +35,9 @@ Java_com_example_gbaemulator_MainActivity_nativeSetKeyState(JNIEnv* env, jobject
     key_state = static_cast<uint16_t>(keys);
 }
 
-// Step PPU per il Rendering Grafico (Modalità 3 / Tile Map)
 extern "C" JNIEXPORT void JNICALL
 Java_com_example_gbaemulator_MainActivity_nativeRenderFrame(JNIEnv* env, jobject thiz, jobject surface) {
-    if (!is_rom_loaded) return;
+    if (!is_rom_loaded || rom_data.empty()) return;
 
     ANativeWindow* window = ANativeWindow_fromSurface(env, surface);
     if (!window) return;
@@ -66,38 +45,30 @@ Java_com_example_gbaemulator_MainActivity_nativeRenderFrame(JNIEnv* env, jobject
     ANativeWindow_setBuffersGeometry(window, 240, 160, WINDOW_FORMAT_RGBA_8888);
     ANativeWindow_Buffer buffer;
 
-    // Esecuzione istruzioni ARM7TDMI per ogni scanline (160 linee)
-    static uint32_t frame_ticks = 0;
-    frame_ticks++;
+    // Sfondo predefinito scuro
+    for (int i = 0; i < 240 * 160; i++) {
+        gba_framebuffer[i] = 0xFF121212;
+    }
 
-    // Ciclo di rendering PPU (Decodifica Palette e Pixel)
-    for (int y = 0; y < 160; y++) {
-        for (int x = 0; x < 240; x++) {
-            // Se un tasto è premuto, la CPU risponde al controller
-            bool btn_pressed = (key_state != 0x03FF);
+    // Offset dove risiedono solitamente le sprite/tile del gioco nella ROM
+    size_t tile_offset = 0x2000;
+    static int scroll_x = 0;
+    if ((key_state & (1 << 4)) == 0) scroll_x += 2; // Right pressed
+    if ((key_state & (1 << 5)) == 0) scroll_x -= 2; // Left pressed
 
-            if (y < 4 || y > 156 || x < 4 || x > 236) {
-                gba_framebuffer[y * 240 + x] = 0xFF101010; // Cornice Schermo
-            } else {
-                // Rendering dinamico dei frame basato sui dati grafici della ROM
-                size_t offset = (0x20000 + (y * 240 + x) + (frame_ticks * 4)) % rom_data.size();
-                uint8_t pixel_val = rom_data[offset];
-
-                uint8_t r = pixel_val;
-                uint8_t g = (pixel_val * 3) % 255;
-                uint8_t b = (pixel_val * 7) % 255;
-
-                if (btn_pressed) {
-                    // Flash di feedback sui comandi quando premi un tasto
-                    r = (r + 50) % 255;
-                }
-
-                gba_framebuffer[y * 240 + x] = (0xFF << 24) | (b << 16) | (g << 8) | r;
+    // Renderizza una griglia di Tile 8x8 (30x20 tile = 240x160 pixel)
+    for (int ty = 0; ty < 20; ty++) {
+        for (int tx = 0; tx < 30; tx++) {
+            size_t current_tile_ptr = tile_offset + ((ty * 30 + tx) * 32);
+            if (current_tile_ptr + 32 < rom_data.size()) {
+                int render_x = (tx * 8 + scroll_x) % 240;
+                if (render_x < 0) render_x += 240;
+                decode_gba_tile(&rom_data[current_tile_ptr], gba_framebuffer, render_x, ty * 8, default_palette);
             }
         }
     }
 
-    // Copia i pixel calcolati sulla superficie della SurfaceView
+    // Copia sullo schermo Android
     if (ANativeWindow_lock(window, &buffer, nullptr) == 0) {
         uint32_t* pixels = static_cast<uint32_t*>(buffer.bits);
         for (int y = 0; y < 160; y++) {
