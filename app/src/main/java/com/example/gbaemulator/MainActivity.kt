@@ -2,6 +2,7 @@ package com.example.gbaemulator
 
 import android.net.Uri
 import android.os.Bundle
+import android.view.SurfaceHolder
 import android.view.SurfaceView
 import android.view.View
 import android.widget.Button
@@ -11,11 +12,22 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), SurfaceHolder.Callback {
 
     private lateinit var surfaceView: SurfaceView
     private lateinit var loadRomLayout: LinearLayout
     private lateinit var tvStatus: TextView
+    private var isRunning = false
+    private var renderThread: Thread? = null
+
+    companion object {
+        init {
+            System.loadLibrary("gbaemulator")
+        }
+    }
+
+    private external fun nativeLoadRom(romBytes: ByteArray)
+    private external fun nativeRenderFrame(surface: Any)
 
     private val openRomLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri?.let { loadRom(it) }
@@ -29,6 +41,8 @@ class MainActivity : AppCompatActivity() {
         loadRomLayout = findViewById(R.id.load_rom_layout)
         tvStatus = findViewById(R.id.screen_placeholder)
 
+        surfaceView.holder.addCallback(this)
+
         val btnLoadRom: Button = findViewById(R.id.btn_load_rom)
         btnLoadRom.setOnClickListener {
             openRomLauncher.launch("*/*")
@@ -39,18 +53,38 @@ class MainActivity : AppCompatActivity() {
         try {
             contentResolver.openInputStream(uri)?.use { inputStream ->
                 val romBytes = inputStream.readBytes()
+                nativeLoadRom(romBytes)
+
                 val fileName = getFileName(uri)
-                val romSizeMb = String.format("%.2f", romBytes.size / (1024.0 * 1024.0))
+                Toast.makeText(this, "Caricata in C++: $fileName", Toast.LENGTH_SHORT).show()
 
-                Toast.makeText(this, "Caricata: $fileName ($romSizeMb MB)", Toast.LENGTH_LONG).show()
-
-                // Nasconde il menù di caricamento e mostra la schermata di gioco attiva
                 loadRomLayout.visibility = View.GONE
                 surfaceView.visibility = View.VISIBLE
+                
+                startEmulatorLoop()
             }
         } catch (e: Exception) {
-            Toast.makeText(this, "Errore nel caricamento del file: ${e.message}", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Errore: ${e.message}", Toast.LENGTH_LONG).show()
         }
+    }
+
+    private fun startEmulatorLoop() {
+        isRunning = true
+        renderThread = Thread {
+            while (isRunning) {
+                if (surfaceView.holder.surface.isValid) {
+                    nativeRenderFrame(surfaceView.holder.surface)
+                }
+                Thread.sleep(16) // ~60 FPS
+            }
+        }
+        renderThread?.start()
+    }
+
+    override fun surfaceCreated(holder: SurfaceHolder) {}
+    override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {}
+    override fun surfaceDestroyed(holder: SurfaceHolder) {
+        isRunning = false
     }
 
     private fun getFileName(uri: Uri): String {
