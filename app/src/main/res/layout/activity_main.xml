@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#1E1E1E">
+
+    <!-- SCHERMO GBA -->
+    <FrameLayout
+        android:id="@+id/screen_container"
+        android:layout_width="match_parent"
+        android:layout_height="240dp"
+        android:layout_alignParentTop="true"
+        android:layout_margin="16dp"
+        android:background="#000000">
+
+        <TextView
+            android:id="@+id/screen_placeholder"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="Nessuna ROM caricata"
+            android:textColor="#555555"
+            android:textSize="18sp" />
+    </FrameLayout>
+
+    <!-- PULSANTI DORSALI (L / R) -->
+    <LinearLayout
+        android:id="@+id/shoulder_buttons"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/screen_container"
+        android:orientation="horizontal"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp">
+
+        <Button
+            android:id="@+id/btn_l"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="L"
+            android:layout_marginEnd="8dp"/>
+
+        <Button
+            android:id="@+id/btn_r"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="R"
+            android:layout_marginStart="8dp"/>
+    </LinearLayout>
+
+    <!-- CONTROLLI INFERIORI (D-PAD e A/B) -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/shoulder_buttons"
+        android:padding="16dp">
+
+        <!-- D-PAD (Freccette) -->
+        <GridLayout
+            android:id="@+id/dpad"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:layout_alignParentStart="true"
+            android:columnCount="3"
+            android:rowCount="3">
+
+            <View android:layout_width="45dp" android:layout_height="45dp" android:layout_row="0" android:layout_column="0"/>
+            <Button android:id="@+id/btn_up" android:layout_width="45dp" android:layout_height="45dp" android:text="▲" android:layout_row="0" android:layout_column="1"/>
+            <View android:layout_width="45dp" android:layout_height="45dp" android:layout_row="0" android:layout_column="2"/>
+
+            <Button android:id="@+id/btn_left" android:layout_width="45dp" android:layout_height="45dp" android:text="◄" android:layout_row="1" android:layout_column="0"/>
+            <View android:layout_width="45dp" android:layout_height="45dp" android:layout_row="1" android:layout_column="1"/>
+            <Button android:id="@+id/btn_right" android:layout_width="45dp" android:layout_height="45dp" android:text="►" android:layout_row="1" android:layout_column="2"/>
+
+            <View android:layout_width="45dp" android:layout_height="45dp" android:layout_row="2" android:layout_column="0"/>
+            <Button android:id="@+id/btn_down" android:layout_width="45dp" android:layout_height="45dp" android:text="▼" android:layout_row="2" android:layout_column="1"/>
+            <View android:layout_width="45dp" android:layout_height="45dp" android:layout_row="2" android:layout_column="2"/>
+        </GridLayout>
+
+        <!-- PULSANTI A e B -->
+        <LinearLayout
+            android:id="@+id/action_buttons"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:layout_alignParentEnd="true"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btn_b"
+                android:layout_width="55dp"
+                android:layout_height="55dp"
+                android:layout_marginTop="20dp"
+                android:layout_marginEnd="12dp"
+                android:text="B" />
+
+            <Button
+                android:id="@+id/btn_a"
+                android:layout_width="55dp"
+                android:layout_height="55dp"
+                android:layout_marginBottom="20dp"
+                android:text="A" />
+        </LinearLayout>
+
+        <!-- PULSANTI SELECT e START -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:layout_centerHorizontal="true"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btn_select"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:layout_marginEnd="16dp"
+                android:text="SELECT"
+                android:textSize="10sp" />
+
+            <Button
+                android:id="@+id/btn_start"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:text="START"
+                android:textSize="10sp" />
+        </LinearLayout>
+
+    </RelativeLayout>
+
+</RelativeLayout>
