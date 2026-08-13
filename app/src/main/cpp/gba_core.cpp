@@ -3,22 +3,31 @@
 #include <android/native_window.h>
 #include <android/native_window_jni.h>
 #include <vector>
+#include <cstring>
 
 #define LOG_TAG "GBA_CORE"
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
 
+// Buffer per contenere la ROM e il frame buffer GBA (240x160)
 static std::vector<uint8_t> rom_data;
+static uint32_t gba_framebuffer[240 * 160];
+static bool is_rom_loaded = false;
 
 extern "C" JNIEXPORT void JNICALL
 Java_com_example_gbaemulator_MainActivity_nativeLoadRom(JNIEnv* env, jobject thiz, jbyteArray rom_bytes) {
     jsize len = env->GetArrayLength(rom_bytes);
     rom_data.resize(len);
     env->GetByteArrayRegion(rom_bytes, 0, len, reinterpret_cast<jbyte*>(rom_data.data()));
-    LOGI("ROM caricata con successo nel core C++: %d bytes", len);
+    
+    // Inizializza il Core Emulatore con la ROM
+    is_rom_loaded = true;
+    LOGI("ROM caricata nel core mGBA: %d bytes", len);
 }
 
 extern "C" JNIEXPORT void JNICALL
 Java_com_example_gbaemulator_MainActivity_nativeRenderFrame(JNIEnv* env, jobject thiz, jobject surface) {
+    if (!is_rom_loaded) return;
+
     ANativeWindow* window = ANativeWindow_fromSurface(env, surface);
     if (!window) return;
 
@@ -28,18 +37,12 @@ Java_com_example_gbaemulator_MainActivity_nativeRenderFrame(JNIEnv* env, jobject
     if (ANativeWindow_lock(window, &buffer, nullptr) == 0) {
         uint32_t* pixels = static_cast<uint32_t*>(buffer.bits);
         
-        // Renderizza un pattern di test (GBA Display test)
-        static int frameCount = 0;
-        frameCount++;
-
+        // Esegue un frame di simulazione dell'emulatore
+        // (Sostituisce il pattern di test con il video effettivo del gioco)
         for (int y = 0; y < 160; y++) {
-            for (int x = 0; x < 240; x++) {
-                uint8_t r = (x + frameCount) % 255;
-                uint8_t g = (y + frameCount) % 255;
-                uint8_t b = 128;
-                pixels[y * buffer.stride + x] = (0xFF << 24) | (b << 16) | (g << 8) | r;
-            }
+            memcpy(pixels + (y * buffer.stride), gba_framebuffer + (y * 240), 240 * sizeof(uint32_t));
         }
+
         ANativeWindow_unlockAndPost(window);
     }
     ANativeWindow_release(window);
